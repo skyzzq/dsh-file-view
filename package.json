@@ -1,0 +1,70 @@
+{
+  "name": "dsh-file-view",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "DeepSeek Harness 插件：文件展示与链接交互。对话中提到的所有文件路径自动转为可点击链接，支持侧边栏秒级预览、外部编辑器跳转与资源管理器定位；内置同源界面强调色设置。",
+  "author": "skyzzq",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skyzzq/dsh-file-view.git"
+  },
+  "homepage": "https://github.com/skyzzq/dsh-file-view#readme",
+  "bugs": {
+    "url": "https://github.com/skyzzq/dsh-file-view/issues"
+  },
+  "main": "./index.js",
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "src/",
+    "cordis.patch.yml",
+    "locale/",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "file-view",
+    "file-link",
+    "clickable",
+    "preview",
+    "theme"
+  ],
+  "scripts": {
+    "build": "node scripts/build-client.mjs",
+    "test": "node test/paths.test.mjs && node test/boundary.test.mjs && node test/security.test.mjs && node test/e2e-simulation.test.mjs && node test/self-check.mjs",
+    "pack:release": "node scripts/prepare-publish.mjs",
+    "publish:github": "node scripts/publish-github.mjs"
+  }
+}
