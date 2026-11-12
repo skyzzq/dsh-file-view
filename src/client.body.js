@@ -120,6 +120,8 @@ function styleText(cfg) {
     'color:' + LINK_ACCENT + ';' +
     'cursor:pointer;' +
     'border-radius:2px;' +
+    'word-break:break-all;' +
+    'overflow-wrap:anywhere;' +
     underline +
     'transition:background-color .12s ease;' +
     '}' +
@@ -243,6 +245,28 @@ function wrapTextNode(node, cfg) {
 function scanTree(root, cfg) {
   if (!root || root.nodeType !== 1) return 0;
   if (root.closest('.dshfl-link')) return 0;
+
+  // 清除为了前端换行插入的 <wbr> 标签，并合并相邻文本节点，防止长文件名/路径被 DOM 元素切断
+  if (typeof root.getElementsByTagName === 'function') {
+    var wbrs = root.getElementsByTagName('wbr');
+    if (wbrs && wbrs.length > 0) {
+      var parents = [];
+      while (wbrs.length > 0) {
+        var w = wbrs[0];
+        var p = w.parentNode;
+        if (p) {
+          p.removeChild(w);
+          if (parents.indexOf(p) === -1) parents.push(p);
+        } else {
+          break;
+        }
+      }
+      for (var pi = 0; pi < parents.length; pi++) {
+        try { parents[pi].normalize(); } catch (e) {}
+      }
+    }
+  }
+
   var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: function (node) {
       return acceptableTextNode(node, cfg) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;

@@ -1,6 +1,6 @@
 {
   "name": "dsh-file-view",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "DeepSeek Harness 插件：文件展示与链接交互。对话中提到的所有文件路径自动转为可点击链接，支持侧边栏秒级预览、外部编辑器跳转与资源管理器定位；内置同源界面强调色设置。",
   "author": "skyzzq",
@@ -63,7 +63,7 @@
   ],
   "scripts": {
     "build": "node scripts/build-client.mjs",
-    "test": "node test/paths.test.mjs && node test/boundary.test.mjs && node test/security.test.mjs && node test/e2e-simulation.test.mjs && node test/self-check.mjs",
+    "test": "node test/paths.test.mjs && node test/boundary.test.mjs && node test/wrap.test.mjs && node test/security.test.mjs && node test/e2e-simulation.test.mjs && node test/self-check.mjs",
     "pack:release": "node scripts/prepare-publish.mjs",
     "publish:github": "node scripts/publish-github.mjs"
   }
