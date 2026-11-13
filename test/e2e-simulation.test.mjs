@@ -263,7 +263,8 @@ const mockCtx = {
     session: {
       openWorkspacePath(req) {
         hostOpenCalls.push(req);
-        return Promise.resolve({ ok: true });
+        // 与真实宿主 SessionController.openWorkspacePath 一致：成功返回 { opened: true }
+        return Promise.resolve({ opened: true });
       }
     }
   },
@@ -380,7 +381,10 @@ assert.equal(
   hostOpenCalls[0].path,
   'C:/Users/test/workspace/src/core/main.ts'
 );
-console.log('✔ External editor invoked with absolutized workspace path!\n');
+// 不带 action / application ⇒ 宿主走 openPath（本机默认关联应用）
+assert.equal(hostOpenCalls[0].action, undefined, 'Ctrl+左键必须走系统默认应用，不得带 reveal');
+assert.equal(hostOpenCalls[0].application, undefined, '不得指定特定 application');
+console.log('✔ Ctrl+左键 → 本机默认应用打开（无 action，宿主返回 { opened: true } 判定成功）!\n');
 
 // ============================================================================
 // Scenario 4: Alt + Click (Reveal in Explorer)
@@ -539,9 +543,112 @@ assert.equal(lastTheme.tokens['--dsw-alias-state-business-primary'].light, '#0f9
 assert.equal(lastTheme.tokens['--dsw-alias-state-business-primary'].dark, '#34d399');
 console.log('✔ Theme tokens synchronized in real time with green preset (#0f9d6e)!\n');
 
+// ============================================================================
+// Scenario 11: Right-Click Opens Context Menu
+// ============================================================================
+console.log('--- Scenario 11: Right-Click Context Menu ---');
+sidebarCalls.length = 0;
+hostOpenCalls.length = 0;
+
+dispatchEvent('contextmenu', {
+  target: links[0],
+  clientX: 220, clientY: 140,
+  preventDefault() {}, stopPropagation() {}
+});
+
+const menus = document.body.querySelectorAll('.dshfl-menu');
+assert.equal(menus.length, 1, 'Right-click on a file link must open exactly one context menu');
+const menuItems = menus[0].childNodes.filter(n => n.getAttribute && n.getAttribute('data-dshfl-action'));
+const actions = menuItems.map(n => n.getAttribute('data-dshfl-action'));
+assert.deepEqual(actions, ['preview', 'open', 'reveal', 'copy'], 'Menu offers preview / default-app / file-manager / copy');
+console.log('✔ 右键菜单出现，含「预览 / 本机默认应用打开 / 从文件管理器查看 / 复制路径」!\n');
+
+// helper: click a menu item through the pointerdown capture delegate
+function clickMenuItem(action) {
+  const m = document.body.querySelectorAll('.dshfl-menu')[0];
+  const item = m.childNodes.filter(n => n.getAttribute && n.getAttribute('data-dshfl-action') === action)[0];
+  dispatchEvent('pointerdown', {
+    target: item,
+    preventDefault() {}, stopPropagation() {}
+  });
+}
+
+// ============================================================================
+// Scenario 12: Menu → 用本机默认应用打开 (no action / application)
+// ============================================================================
+console.log('--- Scenario 12: Menu "用本机默认应用打开" ---');
+sidebarCalls.length = 0;
+hostOpenCalls.length = 0;
+
+// 重新右键打开菜单（上一个菜单在场景 11 之后仍在，这里直接复用）
+clickMenuItem('open');
+await new Promise(r => setTimeout(r, 10));
+
+assert.equal(hostOpenCalls.length, 1, 'hostOpen should be called once');
+assert.equal(hostOpenCalls[0].action, undefined, '默认应用打开不得带 reveal');
+assert.equal(hostOpenCalls[0].application, undefined, '默认应用打开不得指定 application');
+assert.equal(hostOpenCalls[0].path, 'C:/Users/test/workspace/src/core/main.ts');
+assert.equal(sidebarCalls.length, 0, '不应触发右侧栏预览');
+assert.equal(document.body.querySelectorAll('.dshfl-menu').length, 0, '选择后菜单必须关闭');
+console.log('✔ 菜单「用本机默认应用打开」→ 宿主默认应用路径，菜单自动关闭!\n');
+
+// ============================================================================
+// Scenario 13: Menu → 从文件管理器查看 (action: reveal)
+// ============================================================================
+console.log('--- Scenario 13: Menu "从文件管理器查看" ---');
+sidebarCalls.length = 0;
+hostOpenCalls.length = 0;
+
+dispatchEvent('contextmenu', {
+  target: links[0], clientX: 220, clientY: 140,
+  preventDefault() {}, stopPropagation() {}
+});
+clickMenuItem('reveal');
+await new Promise(r => setTimeout(r, 10));
+
+assert.equal(hostOpenCalls.length, 1, 'hostOpen should be called once');
+assert.equal(hostOpenCalls[0].action, 'reveal', '从文件管理器查看必须带 action: reveal');
+assert.equal(sidebarCalls.length, 0, '不应触发右侧栏预览');
+console.log('✔ 菜单「从文件管理器查看」→ action: reveal（文件管理器定位）!\n');
+
+// ============================================================================
+// Scenario 14: Menu → 预览 / Escape 关闭 / 菜单外点击关闭
+// ============================================================================
+console.log('--- Scenario 14: Menu preview, Escape & outside-click close ---');
+sidebarCalls.length = 0;
+hostOpenCalls.length = 0;
+
+dispatchEvent('contextmenu', {
+  target: links[1], clientX: 220, clientY: 140,
+  preventDefault() {}, stopPropagation() {}
+});
+clickMenuItem('preview');
+assert.equal(sidebarCalls.length, 1, '菜单预览应触发右侧栏');
+assert.equal(sidebarCalls[0].url, 'dsh-resource://file/session/sess-1/docs/README.md');
+
+// Escape 关闭
+dispatchEvent('contextmenu', {
+  target: links[1], clientX: 220, clientY: 140,
+  preventDefault() {}, stopPropagation() {}
+});
+assert.equal(document.body.querySelectorAll('.dshfl-menu').length, 1);
+dispatchEvent('keydown', { target: links[1], key: 'Escape', preventDefault() {} });
+assert.equal(document.body.querySelectorAll('.dshfl-menu').length, 0, 'Escape 应关闭菜单');
+
+// 菜单外点击关闭
+dispatchEvent('contextmenu', {
+  target: links[1], clientX: 220, clientY: 140,
+  preventDefault() {}, stopPropagation() {}
+});
+dispatchEvent('pointerdown', {
+  target: document.body, preventDefault() {}, stopPropagation() {}
+});
+assert.equal(document.body.querySelectorAll('.dshfl-menu').length, 0, '菜单外点击应关闭菜单');
+console.log('✔ 菜单预览 / Escape 关闭 / 菜单外点击关闭全部通过!\n');
+
 // Clean up
 if (effectDisposer) effectDisposer();
 
 console.log('================================================================');
-console.log('🎉 ALL 10 E2E RUNTIME SIMULATION SCENARIOS PASSED 100%!');
+console.log('🎉 ALL 14 E2E RUNTIME SIMULATION SCENARIOS PASSED 100%!');
 console.log('================================================================');

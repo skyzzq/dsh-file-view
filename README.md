@@ -9,8 +9,9 @@
 | 操作 | 行为 |
 | --- | --- |
 | 单击 | 在右侧栏预览该文件（与官方产物 chip 同一条路径） |
-| Ctrl+单击 | 用系统默认程序打开 |
-| Alt+单击 | 在资源管理器中定位并选中 |
+| Ctrl / Cmd + 单击 | 用本机默认关联应用打开（宿主 `openWorkspacePath` 不带 action 即走系统默认程序） |
+| Alt+单击 | 在文件管理器中定位并选中 |
+| 右键 | 打开上下文菜单：预览 / 用本机默认应用打开 / 从文件管理器查看 / 复制路径 |
 | Enter / 空格（聚焦时） | 等同于单击 |
 
 识别范围：
@@ -74,7 +75,7 @@ node scripts/build-client.mjs
 
 **单击为什么不会打断复制。** `mousedown` 记录坐标，`click` 时位移超过 4px 或者存在非空选区就放行给原生行为。这是刻意做的，因为裸路径的单击劫持最容易踩的就是「选不中字」。
 
-**相对路径怎么解析。** `remote.session.openWorkspacePath` 按宿主进程目录解析，不是会话工作区，所以相对路径先在客户端拼上会话 `cwd` 再交出去。预览走 `dsh-resource://file/session/<id>/<path>`，由侧栏按会话解析。
+**相对路径怎么解析。** 相对路径先在客户端拼上会话 `cwd` 再交出去；`remote.session.openWorkspacePath` 不带 `action` / `application` 时通过宿主 `openPath`（系统默认关联应用）打开，带 `action: 'reveal'` 时通过 `revealPath` 在文件管理器中定位并选中。预览走 `dsh-resource://file/session/<id>/<path>`，由侧栏按会话解析。
 
 **强调色为什么用 `overrideTokens` 而不是 `register`。** `register` 会新增一整套主题并出现在主题选择器里；`overrideTokens` 是叠在**当前**主题上的一层，用户切浅色/深色或换主题时覆盖层继续生效，卸载即还原，不会污染主题列表。
 

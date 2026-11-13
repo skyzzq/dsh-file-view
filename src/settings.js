@@ -249,7 +249,12 @@ export function createFileLinkSettings(react, deps) {
         h(
           'div',
           { style: S.muted },
-          '单击 → 右侧栏预览　·　Ctrl+单击 → 系统默认程序打开　·　Alt+单击 → 在资源管理器中定位'
+          '单击 → 右侧栏预览　·　Ctrl+单击 → 本机默认应用打开　·　Alt+单击 → 在文件管理器中定位'
+        ),
+        h(
+          'div',
+          { style: S.muted },
+          '右键 → 打开菜单：在右侧栏预览 / 用本机默认应用打开 / 从文件管理器查看 / 复制路径。'
         ),
         h(
           'div',
